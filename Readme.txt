@@ -20,8 +20,8 @@ A simple Flask-based event scheduler with support for recurring events, email re
 
 1. **Clone the repository**  
    ```
-   git clone <your-repo-url>
-   cd <repo-folder>
+   git clone https://github.com/shubham032/Event_Scheduler_System.git
+   cd Event_Scheduler_System
    ```
 
 2. **Install dependencies**  
