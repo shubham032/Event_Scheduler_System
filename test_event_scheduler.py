@@ -1,4 +1,3 @@
-# test_event_scheduler.py
 import pytest
 from app import app, EVENTS_FILE
 import os
