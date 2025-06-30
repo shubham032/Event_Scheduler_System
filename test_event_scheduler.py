@@ -10,11 +10,10 @@ def client():
     app.config['TESTING'] = True
     with app.test_client() as client:
         yield client
-    # Cleanup
+
     if os.path.exists(EVENTS_FILE):
         os.remove(EVENTS_FILE)
 
-# 🧪 Basic CRUD
 
 def test_create_event(client):
     response = client.post('/events', json={
@@ -62,7 +61,6 @@ def test_list_events(client):
     assert response.status_code == 200
     assert any(e['title'] == 'List Test' for e in response.get_json())
 
-# 🧪 Recurrence Expansion
 
 def test_recurring_event_expansion(client):
     client.post('/events', json={
@@ -76,7 +74,7 @@ def test_recurring_event_expansion(client):
     expanded = [e for e in response.get_json() if e['title'] == 'Daily Task']
     assert len(expanded) >= 4
 
-# 🧪 Search Filtering
+
 
 def test_search_title_filter(client):
     client.post('/events', json={
@@ -98,15 +96,56 @@ def test_search_description_filter(client):
     response = client.get('/events?description=findthis')
     assert any('FindThisDescription' in e['description'] for e in response.get_json())
 
-# 🧪 Edge Case: Invalid Time
+    def test_missing_title(client):
+        response = client.post('/events', json={
+            'description': 'No title',
+            'start_time': '2025-07-01T10:00:00',
+            'end_time': '2025-07-01T11:00:00'
+        })
+        assert response.status_code == 400
 
-def test_invalid_time_order(client):
-    response = client.post('/events', json={
-        'title': 'Invalid Time',
-        'description': 'end before start',
-        'start_time': '2025-07-01T12:00:00',
-        'end_time': '2025-07-01T11:00:00'
-    })
-    assert response.status_code == 201  # In production you'd want 400; no validation yet
+    def test_missing_start_time(client):
+        response = client.post('/events', json={
+            'title': 'No Start Time',
+            'description': 'Missing start_time',
+            'end_time': '2025-07-01T11:00:00'
+        })
+        assert response.status_code == 400
 
-# 🧪 Reminder/Notification logic would need mocking or time patching (optional)
+    def test_missing_end_time(client):
+        response = client.post('/events', json={
+            'title': 'No End Time',
+            'description': 'Missing end_time',
+            'start_time': '2025-07-01T10:00:00'
+        })
+        assert response.status_code == 400
+
+    def test_update_nonexistent_event(client):
+        response = client.put('/events/nonexistent-id', json={'title': 'Should Fail'})
+        assert response.status_code == 404
+
+    def test_delete_nonexistent_event(client):
+        response = client.delete('/events/nonexistent-id')
+        assert response.status_code == 404
+
+    def test_get_event_by_id(client):
+        post_resp = client.post('/events', json={
+            'title': 'GetById',
+            'description': 'Testing get by id',
+            'start_time': '2025-07-01T10:00:00',
+            'end_time': '2025-07-01T11:00:00'
+        })
+        event_id = post_resp.get_json()['event']['id']
+        get_resp = client.get(f'/events/{event_id}')
+        assert get_resp.status_code == 200
+        assert get_resp.get_json()['title'] == 'GetById'
+
+    def test_invalid_recurrence_value(client):
+        response = client.post('/events', json={
+            'title': 'Invalid Recurrence',
+            'description': 'Bad recurrence',
+            'start_time': '2025-07-01T10:00:00',
+            'end_time': '2025-07-01T11:00:00',
+            'recurrence': 'weeklyyy'
+        })
+        assert response.status_code == 400
